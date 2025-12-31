@@ -1,6 +1,8 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 
@@ -23,6 +25,7 @@ export default function AdminLayout({
   ];
 
   const pathname = usePathname();
+  const router = useRouter();
   const [authorized, setAuthorized] = React.useState<boolean | null>(null);
   const [userRole, setUserRole] = React.useState<string>('Staff');
 
@@ -43,11 +46,11 @@ export default function AdminLayout({
           setAuthorized(true);
           setUserRole(profile.role);
        } else {
-          window.location.href = '/';
+          router.replace('/');
        }
     }
     checkRole();
-  }, []);
+  }, [router]);
 
   // Role-based menu filtering
   const filteredMenuItems = menuItems.filter(item => {
