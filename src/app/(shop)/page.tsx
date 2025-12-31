@@ -3,6 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { PRODUCTS, Product } from "@/data/products";
+import { useCart } from "@/context/cart-context";
 
 // --- Sub-components ---
 
@@ -10,7 +12,7 @@ const SectionHeader = ({ title, link }: { title: string; link?: string }) => (
   <div className="flex items-center justify-between mb-6">
     <h2 className="text-lg md:text-xl font-black text-gray-800 tracking-tight uppercase">{title}</h2>
     {link && (
-      <Link href={link} className="text-[10px] font-black text-[#2d5a27] bg-[#f0f7f0] px-3 py-1 rounded-full uppercase tracking-widest hover:bg-[#2d5a27] hover:text-white transition-all">
+      <Link href={link} className="text-[10px] font-black text-[#2d5a27] bg-[#f0f7f0] px-3 py-1 rounded-full uppercase tracking-widest hover:bg-[#2d5a27] hover:text-white transition-all text-center">
         View All
       </Link>
     )}
@@ -36,7 +38,6 @@ const ServiceCard = ({ title, sub, icon, bg, textColor, link }: { title: string;
   </Link>
 );
 
-
 const HealthConcernIcon = ({ name, image }: { name: string; image: string }) => (
   <Link href={`/solutions/${name.toLowerCase().replace(' ', '-')}`} className="flex flex-col items-center gap-3 group">
     <div className="w-16 h-16 md:w-20 md:h-20 bg-white border border-gray-100 rounded-2xl md:rounded-3xl flex items-center justify-center p-3 md:p-4 group-hover:border-[#2d5a27] group-hover:shadow-xl group-hover:shadow-[#2d5a27]/5 transition-all">
@@ -48,49 +49,42 @@ const HealthConcernIcon = ({ name, image }: { name: string; image: string }) => 
   </Link>
 );
 
-interface Product {
-  title: string;
-  price: number;
-  oldPrice: number;
-  image: string;
-  isNew?: boolean;
-}
-
-const ApolloProductCard = ({ product }: { product: Product }) => (
-  <div className="group bg-white border border-gray-100 rounded-xl p-3 md:p-4 w-40 md:w-56 shrink-0 flex flex-col transition-all hover:shadow-xl hover:shadow-[#2d5a27]/5">
-    {product.isNew && (
-      <div className="self-start bg-orange-100 text-orange-600 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest mb-2">New Launch</div>
-    )}
-    <div className="relative aspect-square mb-4 bg-gray-50/50 rounded-lg overflow-hidden flex items-center justify-center">
-      <Image src={product.image} alt={product.title} width={150} height={150} className="object-contain p-2 group-hover:scale-105 transition-transform duration-500" />
-    </div>
-    <h3 className="text-xs font-bold text-gray-800 line-clamp-1 mb-1 group-hover:text-[#2d5a27] transition-colors uppercase tracking-tight">{product.title}</h3>
-    <p className="text-[10px] text-gray-400 font-bold mb-3 uppercase tracking-tighter">60 Tablets per Bottle</p>
-    
-    <div className="mt-auto">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-sm md:text-base font-black text-gray-900">₹{product.price}</span>
-        <span className="text-[10px] md:text-xs text-gray-400 line-through font-bold">₹{product.oldPrice}</span>
-        <span className="text-[8px] md:text-[10px] text-green-600 font-black">20% OFF</span>
+const ApolloProductCard = ({ product }: { product: Product }) => {
+  const { addToCart } = useCart();
+  
+  return (
+    <div className="group bg-white border border-gray-100 rounded-xl p-3 md:p-4 w-40 md:w-56 shrink-0 flex flex-col transition-all hover:shadow-xl hover:shadow-[#2d5a27]/5">
+      {product.isNew && (
+        <div className="self-start bg-orange-100 text-orange-600 text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest mb-2">New Launch</div>
+      )}
+      <Link href={`/product/${product.id}`} className="relative aspect-square mb-4 bg-gray-50/50 rounded-lg overflow-hidden flex items-center justify-center">
+        <Image src={product.image} alt={product.title} width={150} height={150} className="object-contain p-2 group-hover:scale-105 transition-transform duration-500" />
+      </Link>
+      <Link href={`/product/${product.id}`}>
+        <h3 className="text-xs font-bold text-gray-800 line-clamp-1 mb-1 group-hover:text-[#2d5a27] transition-colors uppercase tracking-tight">{product.title}</h3>
+      </Link>
+      <p className="text-[10px] text-gray-400 font-bold mb-3 uppercase tracking-tighter line-clamp-1">{product.category}</p>
+      
+      <div className="mt-auto">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sm md:text-base font-black text-gray-900">₹{product.price}</span>
+          <span className="text-[10px] md:text-xs text-gray-400 line-through font-bold">₹{product.oldPrice}</span>
+          <span className="text-[8px] md:text-[10px] text-green-600 font-black">SAVE 20%</span>
+        </div>
+        <button 
+          onClick={() => addToCart(product)}
+          className="w-full bg-[#2d5a27] text-white py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md shadow-[#2d5a27]/10 hover:bg-[#1f3f1b] transition-all active:scale-95 cursor-pointer"
+        >
+          Add to Cart
+        </button>
       </div>
-      <button className="w-full bg-[#2d5a27] text-white py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md shadow-[#2d5a27]/10 hover:bg-[#1f3f1b] transition-all active:scale-95">
-        Add to Cart
-      </button>
     </div>
-  </div>
-);
+  );
+};
 
 // --- Main Page ---
 
 export default function ShopHomePage() {
-  const products = [
-    { title: 'Ashwagandha Gold', price: 499, oldPrice: 599, image: '/images/product-placeholder.png', isNew: true },
-    { title: 'Brahmi Memory', price: 349, oldPrice: 449, image: '/images/product-placeholder.png' },
-    { title: 'Tulsi Drops', price: 199, oldPrice: 249, image: '/images/product-placeholder.png' },
-    { title: 'Neem Purifier', price: 299, oldPrice: 399, image: '/images/product-placeholder.png' },
-    { title: 'Saffron Serum', price: 899, oldPrice: 1299, image: '/images/product-placeholder.png' },
-  ];
-
   const concerns = [
     { name: 'Diabetes', image: '/images/sol-diabetes.png' },
     { name: 'Cold & Cough', image: '/images/sol-cold-cough.png' },
@@ -188,7 +182,7 @@ export default function ShopHomePage() {
       <section>
         <SectionHeader title="Best Sellers" link="/categories" />
         <div className="flex overflow-x-auto gap-4 md:gap-8 pb-10 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
-          {products.map((p, i) => (
+          {PRODUCTS.map((p, i) => (
             <ApolloProductCard key={i} product={p} />
           ))}
         </div>
@@ -209,7 +203,7 @@ export default function ShopHomePage() {
       <section>
         <SectionHeader title="Ayurveda Special Selection" link="/ayurveda" />
         <div className="flex overflow-x-auto gap-4 md:gap-8 pb-10 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
-          {[...products].reverse().map((p, i) => (
+          {[...PRODUCTS].reverse().map((p, i) => (
             <ApolloProductCard key={i} product={p} />
           ))}
         </div>

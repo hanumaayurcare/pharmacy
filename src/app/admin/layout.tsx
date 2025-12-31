@@ -1,5 +1,9 @@
 import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+
 
 export default function AdminLayout({
   children,
@@ -18,31 +22,106 @@ export default function AdminLayout({
     { name: 'Settings', icon: '⚙️', path: '/admin/settings' },
   ];
 
-  return (
-    <div className="admin-layout flex min-h-screen bg-[#f1f5f9]">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-[#e2e8f0] flex-shrink-0 flex flex-col hidden lg:flex">
-        <div className="p-6 border-b border-[#e2e8f0]">
-          <Link href="/admin" className="font-bold text-xl text-[#2d5a27] tracking-tight">HANUMA <span className="text-gray-400 font-medium text-sm">ADMIN</span></Link>
+  const pathname = usePathname();
+  const [authorized, setAuthorized] = React.useState<boolean | null>(null);
+  const [userRole, setUserRole] = React.useState<string>('Staff');
+
+  React.useEffect(() => {
+    async function checkRole() {
+       const { data: { session } } = await supabase.auth.getSession();
+       if (!session) {
+          window.location.href = '/auth/login';
+          return;
+       }
+       const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+       
+       if (profile?.role === 'Admin' || profile?.role === 'Staff') {
+          setAuthorized(true);
+          setUserRole(profile.role);
+       } else {
+          window.location.href = '/';
+       }
+    }
+    checkRole();
+  }, []);
+
+  // Role-based menu filtering
+  const filteredMenuItems = menuItems.filter(item => {
+    if (userRole === 'Staff') {
+       // Staff cannot see Finance, Settings, or Reports
+       return !['Finance', 'Settings', 'Reports', 'Users'].includes(item.name);
+    }
+    return true; // Admin sees everything
+  });
+
+  if (authorized === null) {
+
+     return (
+        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+           <div className="w-12 h-12 border-4 border-[#2d5a27]/20 border-t-[#2d5a27] rounded-full animate-spin"></div>
         </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {menuItems.map((item) => (
-            <Link 
-              key={item.name} 
-              href={item.path}
-              className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-[#f0f7f0] hover:text-[#2d5a27] transition-colors"
-            >
-              <span className="text-lg">{item.icon}</span>
-              {item.name}
-            </Link>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-[#e2e8f0]">
-          <Link href="/" className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-800">
-            <span>🏠</span> Back to Store
+     );
+  }
+
+  return (
+
+    <div className="admin-layout flex min-h-screen bg-[#f8fafc]">
+      {/* Sidebar */}
+      <aside className="w-72 bg-gradient-to-b from-[#f2f8f2] to-[#e6f2e6] border-r border-[#d6e6d6] flex-shrink-0 flex flex-col hidden lg:flex relative overflow-hidden">
+        {/* Subtle decorative background element */}
+        <div className="absolute top-[-5%] right-[-5%] w-64 h-64 bg-[#2d5a27] rounded-full blur-[120px] opacity-[0.05] pointer-events-none"></div>
+        
+        <div className="p-8 relative z-10">
+          <Link href="/admin" className="flex flex-col gap-1 group">
+            <span className="text-2xl font-black text-gray-900 tracking-tighter uppercase leading-tight">
+              Hanuma<span className="text-[#2d5a27] ml-1">Care</span>
+            </span>
+            <span className="text-[10px] font-black text-[#5a8a5a] uppercase tracking-[0.4em] ml-0.5">Control Center</span>
           </Link>
         </div>
+
+        <nav className="flex-1 px-6 py-4 space-y-1.5 relative z-10 overflow-y-auto no-scrollbar">
+          {filteredMenuItems.map((item) => {
+
+            const isActive = pathname === item.path;
+            return (
+              <Link 
+                key={item.name} 
+                href={item.path}
+                className={`flex items-center gap-4 px-4 py-3 text-[11px] font-black uppercase tracking-widest rounded-2xl transition-all duration-300 group ${
+                  isActive 
+                    ? 'bg-white text-[#2d5a27] shadow-xl shadow-[#2d5a27]/10 border border-[#2d5a27]/20 scale-105' 
+                    : 'text-[#5a8a5a]/70 hover:text-[#2d5a27] hover:bg-white/40 hover:scale-102'
+                }`}
+              >
+                <span className={`text-xl transition-transform duration-500 ${isActive ? 'scale-110' : 'group-hover:scale-110 opacity-70 group-hover:opacity-100'}`}>
+                  {item.icon}
+                </span>
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-6 mt-auto relative z-10">
+          <div className="bg-[#deede0]/60 rounded-[2rem] p-5 border border-[#c8d8c8] backdrop-blur-md">
+            <Link href="/" className="flex items-center justify-between group">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black text-[#5a8a5a] uppercase tracking-widest leading-none mb-1">Exit Point</span>
+                <span className="text-[11px] font-black text-[#2d5a27]/80 group-hover:text-[#2d5a27] transition-colors">Back to Store</span>
+              </div>
+              <div className="w-8 h-8 rounded-xl bg-white shadow-md border border-[#c8d8c8] flex items-center justify-center text-sm group-hover:translate-x-1 transition-transform">
+                🚀
+              </div>
+            </Link>
+          </div>
+        </div>
       </aside>
+
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
@@ -72,8 +151,9 @@ export default function AdminLayout({
               <div className="w-8 h-8 rounded-full bg-[#2d5a27] flex items-center justify-center text-white text-xs font-bold">BS</div>
               <div className="hidden sm:block">
                 <p className="text-sm font-bold text-gray-800 leading-none">Budda Seshu</p>
-                <p className="text-[10px] text-gray-500 mt-1">Super Admin</p>
+                <p className="text-[10px] text-[#2d5a27]/60 font-black uppercase tracking-widest mt-1">{userRole} Profile</p>
               </div>
+
             </div>
           </div>
         </header>
