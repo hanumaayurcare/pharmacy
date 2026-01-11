@@ -1,38 +1,105 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface Order {
   id: string;
-  customer: string;
-  email: string;
-  date: string;
-  total: number;
-  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
-  items: number;
+  user_id: string;
+  total_amount: number;
+  status: string;
+  created_at: string;
+  delivery_address: {
+    fullName?: string;
+    email?: string;
+    [key: string]: string | undefined; // Allow other fields
+  } | null;
+  // Join fields
+  order_items: { count: number }[];
 }
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([
-    { id: '#ORD-99821', customer: 'Jane Smith', email: 'jane@example.com', date: 'Oct 24, 2024', total: 1450, status: 'Processing', items: 3 },
-    { id: '#ORD-99822', customer: 'John Doe', email: 'john@example.com', date: 'Oct 23, 2024', total: 850, status: 'Shipped', items: 1 },
-    { id: '#ORD-99823', customer: 'Anjali Verma', email: 'anjali@example.com', date: 'Oct 22, 2024', total: 2100, status: 'Delivered', items: 4 },
-  ]);
-
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
 
-  const updateStatus = (id: string, newStatus: Order['status']) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .schema('shop')
+        .from('orders')
+        .select(`
+          *,
+          order_items (count)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (error) {
+       console.error('Error fetching orders:', error);
+    } finally {
+       setLoading(false);
+    }
   };
 
-  const filteredOrders = filter === 'All' ? orders : orders.filter(o => o.status === filter);
+  const updateStatus = async (id: string, newStatus: string) => {
+    try {
+      // Optimistic update
+      setOrders(orders.map(o => o.id === id ? { ...o, status: newStatus } : o));
+      
+      const { error } = await supabase
+        .schema('shop')
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) {
+         throw error;
+         // Revert on error?
+         fetchOrders(); // Refresh to be safe
+      }
+    } catch (error) {
+       console.error('Error updating status:', error);
+       alert('Failed to update status');
+    }
+  };
+
+  const filteredOrders = filter === 'All' ? orders : orders.filter(o => o.status === filter.toLowerCase());
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    });
+  };
+
+  // Helper to get customer name from delivery address
+  const getCustomerName = (order: Order) => {
+     if (order.delivery_address && order.delivery_address.fullName) {
+        return order.delivery_address.fullName;
+     }
+     return 'Guest Customer';
+  };
+  
+  // Helper to get email (mapped from user_id if possible, or address)
+  const getCustomerEmail = (order: Order) => {
+     if (order.delivery_address && order.delivery_address.email) {
+        return order.delivery_address.email;
+     }
+     return 'N/A';
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800 tracking-tight text-white bg-orange-500 px-6 py-2 rounded-2xl shadow-lg">Order Management System</h1>
         <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-gray-100">
-          {['All', 'Pending', 'Processing', 'Shipped', 'Delivered'].map(status => (
+          {['All', 'Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
             <button 
                key={status} 
                onClick={() => setFilter(status)}
@@ -60,32 +127,41 @@ export default function AdminOrdersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredOrders.map((order) => (
+              {loading ? (
+                 <tr><td colSpan={6} className="text-center py-10">Loading orders...</td></tr>
+              ) : filteredOrders.length === 0 ? (
+                 <tr><td colSpan={6} className="text-center py-10">No orders found.</td></tr>
+              ) : filteredOrders.map((order) => {
+                const customerName = getCustomerName(order);
+                const customerEmail = getCustomerEmail(order);
+                const itemCount = order.order_items ? order.order_items[0]?.count : 0;
+                
+                return (
                 <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="px-8 py-6 text-sm font-black text-orange-600">{order.id}</td>
+                  <td className="px-8 py-6 text-sm font-black text-orange-600">#{order.id.slice(0, 8)}</td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-[10px] font-black text-orange-700">
-                        {order.customer.split(' ').map(n=>n[0]).join('')}
+                        {customerName.charAt(0)}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-black text-gray-900">{order.customer}</span>
-                        <span className="text-[10px] text-gray-400 font-bold">{order.email}</span>
+                        <span className="text-sm font-black text-gray-900">{customerName}</span>
+                        <span className="text-[10px] text-gray-400 font-bold">{customerEmail}</span>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6 font-bold text-gray-600">
                     <div className="flex flex-col">
-                       <span className="text-xs uppercase tracking-tight">{order.date}</span>
-                       <span className="text-[10px] text-gray-400 flex items-center gap-1">📦 {order.items} Items</span>
+                       <span className="text-xs uppercase tracking-tight">{formatDate(order.created_at)}</span>
+                       <span className="text-[10px] text-gray-400 flex items-center gap-1">📦 {itemCount} Items</span>
                     </div>
                   </td>
-                  <td className="px-8 py-6 text-sm font-black text-gray-900">₹{order.total}</td>
+                  <td className="px-8 py-6 text-sm font-black text-gray-900">₹{order.total_amount}</td>
                   <td className="px-8 py-6">
                     <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                      order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
-                      order.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :
-                      order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                      order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                      order.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
+                      order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
                       'bg-orange-100 text-orange-700'
                     }`}>
                       {order.status}
@@ -95,19 +171,19 @@ export default function AdminOrdersPage() {
                     <div className="flex justify-end">
                        <select 
                           value={order.status}
-                          onChange={(e) => updateStatus(order.id, e.target.value as Order['status'])}
+                          onChange={(e) => updateStatus(order.id, e.target.value)}
                           className="bg-gray-50 border-none rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500/20 transition-all cursor-pointer"
                        >
-                          <option>Pending</option>
-                          <option>Processing</option>
-                          <option>Shipped</option>
-                          <option>Delivered</option>
-                          <option>Cancelled</option>
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
                        </select>
                     </div>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

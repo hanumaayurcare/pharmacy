@@ -1,11 +1,26 @@
 import React from "react";
+import { createClient } from "@/lib/supabase-server";
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const supabase = await createClient();
+
+  // Fetch Stats concurrently
+  const [productsRes, ordersRes, usersRes] = await Promise.all([
+    supabase.schema('shop').from('products').select('*', { count: 'exact', head: true }),
+    supabase.schema('shop').from('orders').select('*', { count: 'exact', head: true }),
+    supabase.from('context_memberships').select('*', { count: 'exact', head: true }).eq('role', 'user')
+  ]);
+  
+  // Calculate revenue (simple sum for now, or just mock if too complex for single query without aggregation function support in simple client)
+  // For revenue we might need an RPC or just fetch all orders and sum in JS (bad for scale but okay for now)
+  // Let's stick to simple counts and a mock revenue or simplified revenue if possible.
+  // Actually, we can just show counts for now.
+
   const stats = [
-    { label: 'Total Sales', value: '₹4,25,000', change: '+12.5%', icon: '💰', color: 'bg-blue-50 text-blue-600' },
-    { label: 'Active Orders', value: '154', change: '+5.2%', icon: '📦', color: 'bg-orange-50 text-orange-600' },
-    { label: 'Total Users', value: '12,450', change: '+18.4%', icon: '👥', color: 'bg-green-50 text-green-600' },
-    { label: 'Avg Order Value', value: '₹1,250', change: '-2.1%', icon: '📈', color: 'bg-purple-50 text-purple-600' },
+    { label: 'Total Products', value: productsRes.count?.toString() || '0', change: 'Inventory', icon: '💊', color: 'bg-blue-50 text-blue-600' },
+    { label: 'Total Orders', value: ordersRes.count?.toString() || '0', change: 'Lifetime', icon: '📦', color: 'bg-orange-50 text-orange-600' },
+    { label: 'Total Users', value: usersRes.count?.toString() || '0', change: 'Registered', icon: '👥', color: 'bg-green-50 text-green-600' },
+    { label: 'Revenue', value: '₹0', change: 'To be implemented', icon: '💰', color: 'bg-purple-50 text-purple-600' },
   ];
 
   return (
@@ -23,7 +38,7 @@ export default function AdminDashboard() {
               <div className={`w-12 h-12 rounded-lg ${stat.color} flex items-center justify-center text-2xl`}>
                 {stat.icon}
               </div>
-              <span className={`text-xs font-bold ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-xs font-bold text-gray-500`}>
                 {stat.change}
               </span>
             </div>
@@ -34,63 +49,28 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Orders */}
+        {/* Recent Orders - Placeholder for now until Orders CRUD is ready */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-[#e2e8f0] overflow-hidden">
           <div className="px-6 py-4 border-b border-[#e2e8f0] flex items-center justify-between">
-            <h3 className="font-bold text-gray-800">Recent Orders</h3>
+            <h3 className="font-bold text-gray-800">Recent Activity</h3>
             <button className="text-sm font-bold text-[#2d5a27] hover:underline">View All</button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-[#f8fafc] text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b border-[#e2e8f0]">
-                  <th className="px-6 py-3">Order ID</th>
-                  <th className="px-6 py-3">Customer</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Amount</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#e2e8f0]">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <tr key={i} className="hover:bg-[#f8fafc] transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-800">#ORD-000{i}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold">JD</div>
-                        <span className="text-sm text-gray-600">John Doe</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700">Delivered</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold">₹1,250</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-6 text-center text-gray-500 text-sm">
+            Recent orders will appear here.
           </div>
         </div>
 
-        {/* Alerts & Notifications */}
+        {/* Alerts & Notifications - Static for now */}
         <div className="bg-white rounded-xl shadow-sm border border-[#e2e8f0] p-6">
-          <h3 className="font-bold text-gray-800 mb-6">Inventory Alerts</h3>
+          <h3 className="font-bold text-gray-800 mb-6">System Status</h3>
           <div className="space-y-6">
-            {[
-              { item: 'Paracetamol 500mg', msg: 'Low Stock: 5 items left', type: 'warning' },
-              { item: 'Vitamin C Serum', msg: 'Out of Stock', type: 'critical' },
-              { item: 'Natural Honey', msg: 'Expiring Soon (15 days)', type: 'info' }
-            ].map((alert, i) => (
-              <div key={i} className="flex gap-4 p-3 rounded-lg bg-gray-50 border-l-4 border-orange-400">
+             <div className="flex gap-4 p-3 rounded-lg bg-green-50 border-l-4 border-green-400">
                 <div className="flex-1">
-                  <h4 className="text-xs font-bold text-gray-800">{alert.item}</h4>
-                  <p className="text-[10px] text-gray-500 mt-1">{alert.msg}</p>
+                  <h4 className="text-xs font-bold text-gray-800">System Online</h4>
+                  <p className="text-[10px] text-gray-500 mt-1">All systems operational.</p>
                 </div>
               </div>
-            ))}
           </div>
-          <button className="w-full mt-6 py-2 px-4 border border-[#e2e8f0] rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors">
-            Manage Inventory
-          </button>
         </div>
       </div>
     </div>

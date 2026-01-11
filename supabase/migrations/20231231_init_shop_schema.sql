@@ -7,7 +7,7 @@ GRANT USAGE ON SCHEMA shop TO anon, authenticated;
 --------------------------------------------------------------------------------
 -- 1. Categories
 --------------------------------------------------------------------------------
-CREATE TABLE shop.categories (
+CREATE TABLE IF NOT EXISTS shop.categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE shop.categories (
 --------------------------------------------------------------------------------
 -- 2. Health & Wellness Solutions
 --------------------------------------------------------------------------------
-CREATE TABLE shop.health_solutions (
+CREATE TABLE IF NOT EXISTS shop.health_solutions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE shop.health_solutions (
 --------------------------------------------------------------------------------
 -- 3. Products
 --------------------------------------------------------------------------------
-CREATE TABLE shop.products (
+CREATE TABLE IF NOT EXISTS shop.products (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     brand TEXT,
@@ -54,7 +54,7 @@ CREATE TABLE shop.products (
 --------------------------------------------------------------------------------
 -- 4. Quick Services
 --------------------------------------------------------------------------------
-CREATE TABLE shop.quick_services (
+CREATE TABLE IF NOT EXISTS shop.quick_services (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE shop.quick_services (
 --------------------------------------------------------------------------------
 -- 5. Promotions & Deals
 --------------------------------------------------------------------------------
-CREATE TABLE shop.promotions (
+CREATE TABLE IF NOT EXISTS shop.promotions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT,
     type TEXT NOT NULL, -- 'banner', 'strip', 'popup'
@@ -84,7 +84,7 @@ CREATE TABLE shop.promotions (
 --------------------------------------------------------------------------------
 -- 6. Prescriptions
 --------------------------------------------------------------------------------
-CREATE TABLE shop.prescriptions (
+CREATE TABLE IF NOT EXISTS shop.prescriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     image_url TEXT NOT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE shop.prescriptions (
 --------------------------------------------------------------------------------
 -- 7. Orders
 --------------------------------------------------------------------------------
-CREATE TABLE shop.orders (
+CREATE TABLE IF NOT EXISTS shop.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'
@@ -113,7 +113,7 @@ CREATE TABLE shop.orders (
 --------------------------------------------------------------------------------
 -- 8. Order Items
 --------------------------------------------------------------------------------
-CREATE TABLE shop.order_items (
+CREATE TABLE IF NOT EXISTS shop.order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID REFERENCES shop.orders(id) ON DELETE CASCADE,
     product_id UUID REFERENCES shop.products(id) ON DELETE SET NULL,
@@ -137,19 +137,36 @@ ALTER TABLE shop.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE shop.order_items ENABLE ROW LEVEL SECURITY;
 
 -- Public Access (Read-only)
+DROP POLICY IF EXISTS "Allow public read access for categories" ON shop.categories;
 CREATE POLICY "Allow public read access for categories" ON shop.categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for health_solutions" ON shop.health_solutions;
 CREATE POLICY "Allow public read access for health_solutions" ON shop.health_solutions FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for products" ON shop.products;
 CREATE POLICY "Allow public read access for products" ON shop.products FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for quick_services" ON shop.quick_services;
 CREATE POLICY "Allow public read access for quick_services" ON shop.quick_services FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public read access for promotions" ON shop.promotions;
 CREATE POLICY "Allow public read access for promotions" ON shop.promotions FOR SELECT USING (true);
 
 -- Authenticated User Access (Prescriptions)
+DROP POLICY IF EXISTS "Users can view their own prescriptions" ON shop.prescriptions;
 CREATE POLICY "Users can view their own prescriptions" ON shop.prescriptions FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can upload their own prescriptions" ON shop.prescriptions;
 CREATE POLICY "Users can upload their own prescriptions" ON shop.prescriptions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
 
 -- Authenticated User Access (Orders)
+DROP POLICY IF EXISTS "Users can view their own orders" ON shop.orders;
 CREATE POLICY "Users can view their own orders" ON shop.orders FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create their own orders" ON shop.orders;
 CREATE POLICY "Users can create their own orders" ON shop.orders FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view their own order items" ON shop.order_items;
 CREATE POLICY "Users can view their own order items" ON shop.order_items FOR SELECT TO authenticated USING (
     EXISTS (SELECT 1 FROM shop.orders WHERE id = shop.order_items.order_id AND user_id = auth.uid())
 );
@@ -166,8 +183,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Add updated_at triggers
+DROP TRIGGER IF EXISTS set_updated_at_categories ON shop.categories;
 CREATE TRIGGER set_updated_at_categories BEFORE UPDATE ON shop.categories FOR EACH ROW EXECUTE FUNCTION shop.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_updated_at_health_solutions ON shop.health_solutions;
 CREATE TRIGGER set_updated_at_health_solutions BEFORE UPDATE ON shop.health_solutions FOR EACH ROW EXECUTE FUNCTION shop.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_updated_at_products ON shop.products;
 CREATE TRIGGER set_updated_at_products BEFORE UPDATE ON shop.products FOR EACH ROW EXECUTE FUNCTION shop.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_updated_at_prescriptions ON shop.prescriptions;
 CREATE TRIGGER set_updated_at_prescriptions BEFORE UPDATE ON shop.prescriptions FOR EACH ROW EXECUTE FUNCTION shop.handle_updated_at();
+
+DROP TRIGGER IF EXISTS set_updated_at_orders ON shop.orders;
 CREATE TRIGGER set_updated_at_orders BEFORE UPDATE ON shop.orders FOR EACH ROW EXECUTE FUNCTION shop.handle_updated_at();

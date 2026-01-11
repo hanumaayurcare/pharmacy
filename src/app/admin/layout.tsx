@@ -31,22 +31,58 @@ export default function AdminLayout({
 
   React.useEffect(() => {
     async function checkRole() {
-       const { data: { session } } = await supabase.auth.getSession();
-       if (!session) {
-          window.location.href = '/auth/login';
-          return;
-       }
-       const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
-       
-       if (profile?.role === 'Admin' || profile?.role === 'Staff') {
-          setAuthorized(true);
-          setUserRole(profile.role);
-       } else {
-          router.replace('/');
+       try {
+         console.log('Checking admin role...');
+         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+         
+         if (sessionError) {
+           console.error('Session error:', sessionError);
+           router.replace('/auth/login');
+           return;
+         }
+
+         if (!session) {
+           console.log('No session found, redirecting to login');
+           window.location.href = '/auth/login';
+           return;
+         }
+
+         console.log('Session found for user:', session.user.id);
+
+         // Check role in context_memberships
+         const { data: memberships, error: membershipError } = await supabase
+            .from('context_memberships')
+            .select('role')
+            .eq('user_id', session.user.id);
+            // .limit(1) - logic below handles if multiple rows exist, though typically explicit check is better
+
+         if (membershipError) {
+            console.error('Error fetching memberships:', membershipError);
+            setAuthorized(false); 
+            return;
+         }
+
+         console.log('Memberships fetched:', memberships);
+         
+         // Check if user has any admin role
+         const isAdmin = memberships?.some(m => ['super_admin', 'admin'].includes(m.role));
+         const isStaff = memberships?.some(m => m.role === 'staff');
+         
+         if (isAdmin) {
+            console.log('User authorized as Admin/SuperAdmin');
+            setAuthorized(true);
+            setUserRole('Admin'); // Normalize to 'Admin' for UI
+         } else if (isStaff) {
+             console.log('User authorized as Staff');
+             setAuthorized(true);
+             setUserRole('Staff');
+         } else {
+            console.warn('Unauthorized role(s):', memberships?.map(m => m.role));
+            router.replace('/');
+         }
+       } catch (err) {
+         console.error('Unexpected error during role check:', err);
+         setAuthorized(false);
        }
     }
     checkRole();
