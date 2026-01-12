@@ -92,11 +92,11 @@ export default function CheckoutPage() {
                   <p className="text-[10px] text-[#2d5a27]/60 font-medium">Pay when you receive</p>
                 </div>
               </div>
-              <div className="border border-gray-100 p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-all opacity-50 grayscale">
+              <div className="border border-gray-100 p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-all border-[#2d5a27]/20">
                 <div className="w-5 h-5 rounded-full border-2 border-gray-200"></div>
                 <div>
                   <h4 className="text-xs font-black text-gray-800 uppercase tracking-tight">Card / UPI</h4>
-                  <p className="text-[10px] text-gray-400 font-medium whitespace-nowrap">Currently unavailable</p>
+                  <p className="text-[10px] text-gray-400 font-medium whitespace-nowrap">Secure Payment Gateway</p>
                 </div>
               </div>
             </div>

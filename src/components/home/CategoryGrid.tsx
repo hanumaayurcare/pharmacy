@@ -14,12 +14,8 @@ interface CategoryGridProps {
 
 export function CategoryGrid({ categories }: CategoryGridProps) {
   return (
-    <section className="py-16 px-4 md:px-8 max-w-7xl mx-auto">
-      <div className="text-center mb-12 space-y-3">
-        <h2 className="text-3xl md:text-4xl font-serif font-medium text-[#1a3c1e]">Shop by Concern</h2>
-        <div className="w-20 h-1 bg-[#d4a373] mx-auto rounded-full" />
-        <p className="text-[#4b5563] max-w-2xl mx-auto">Specific Ayurvedic formulations targeting your unique health needs.</p>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 md:px-8">
+      {/* Header removed to allow parent control */}
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
         {categories.map((category) => (
@@ -54,6 +50,6 @@ export function CategoryGrid({ categories }: CategoryGridProps) {
             View All Categories
          </Link>
       </div>
-    </section>
+    </div>
   );
 }

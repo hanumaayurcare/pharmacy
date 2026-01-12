@@ -38,7 +38,7 @@ export function ProductRail({ title, products, link }: ProductRailProps) {
         {products.map((product) => (
           <Link 
             key={product.id} 
-            href={`/product/${product.id}`} // assuming ID based routing for now, or slug
+            href={`/products/${product.slug}`} 
             className="min-w-[200px] md:min-w-[240px] group"
           >
             <div className="aspect-[4/5] bg-[#f9fafb] rounded-2xl mb-4 relative overflow-hidden">

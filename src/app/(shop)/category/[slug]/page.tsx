@@ -1,22 +1,69 @@
-"use client";
-
-import React, { use } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { PRODUCTS } from "@/data/products";
-import { useCart } from "@/context/cart-context";
+import { createClient } from "@/lib/supabase-server";
+import { AddToCartButton } from "@/components/product/AddToCartButton";
 
-export default function CategoryDetailedPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params);
-  const categoryName = slug.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-  
-  // Filter products by category (case-insensitive match)
-  const categoryProducts = PRODUCTS.filter(p => 
-    p.category.toLowerCase() === categoryName.toLowerCase() ||
-    (categoryName.toLowerCase() === 'ayurveda specials' && p.category.toLowerCase() === 'vitamins') // Mock mapping
-  );
+export const revalidate = 3600;
 
-  const { addToCart } = useCart();
+interface Product {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  old_price: number;
+  image_url: string | null;
+  is_new: boolean;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  type: 'dosage' | 'therapeutic';
+  description?: string;
+}
+
+export default async function CategoryDetailedPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const supabase = await createClient();
+
+  // Fetch category details first (without join, as FK might be missing)
+  const { data } = await supabase
+    .from('categories')
+    .select('*')
+    .eq('slug', slug)
+    .single();
+    
+  const category = data as Category | null;
+
+  const categoryName = category ? category.name : slug.replace('-', ' ');
+  let categoryProducts: Product[] = [];
+
+  if (category) {
+      let query = supabase.from('products').select('*');
+      
+      if (category.type === 'dosage') {
+          // Attempt to match dosage_form. 
+          // Handle specific mismatch "Asava and Arishta" vs "Asava & Arishta"
+          // We search for the name, or if name has " and ", try "&"
+          const namePart = category.name.replace(' and ', ' & ');
+          query = query.ilike('dosage_form', `%${namePart}%`); 
+          // Note: using ilike with % is broad but handles '&' vs 'and' variants reasonably well for this dataset.
+          // Ideally we used exact match or a relation.
+      } else if (category.type === 'therapeutic') {
+           // Match array: therapeutic_categories contains [category.name]
+           // We need to pass it as a postgres array string: {"Name"}
+           query = query.contains('therapeutic_categories', [category.name]);
+      } else {
+         // Fallback or other types?
+         // Try generic match on columns if unsure
+         query = query.or(`dosage_form.eq.${category.name},therapeutic_categories.cs.{${category.name}}`);
+      }
+
+      const { data: products } = await query;
+      categoryProducts = (products as Product[]) || [];
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 md:py-16">
@@ -34,12 +81,10 @@ export default function CategoryDetailedPage({ params }: { params: Promise<{ slu
         </div>
         
         <div className="flex gap-4">
-           <select className="bg-white border border-gray-100 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none shadow-sm focus:ring-2 focus:ring-[#2d5a27]/10 transition-all">
-              <option>Sort by: Featured</option>
-              <option>Price: Low to High</option>
-              <option>Price: High to Low</option>
-              <option>Newest First</option>
-           </select>
+           {/* Sorting capabilities can be added here with query params re-fetching */}
+           <div className="bg-white border border-gray-100 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest outline-none shadow-sm text-gray-400 cursor-not-allowed">
+              Sort by: Featured
+           </div>
         </div>
       </div>
 
@@ -47,25 +92,34 @@ export default function CategoryDetailedPage({ params }: { params: Promise<{ slu
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-10">
           {categoryProducts.map((product) => (
             <div key={product.id} className="group bg-white border border-gray-50 rounded-[2.5rem] p-6 flex flex-col transition-all hover:shadow-2xl hover:shadow-[#2d5a27]/5 hover:-translate-y-2 relative overflow-hidden">
-               {product.isNew && (
+               {product.is_new && (
                   <div className="absolute top-6 left-6 bg-orange-100 text-orange-600 text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest z-10">New Launch</div>
                )}
-               <Link href={`/product/${product.id}`} className="relative aspect-square mb-6 bg-gray-50/30 rounded-3xl overflow-hidden flex items-center justify-center">
-                  <Image src={product.image} alt={product.title} width={200} height={200} className="object-contain p-4 group-hover:scale-105 transition-transform duration-700" />
+               <Link href={`/products/${product.slug}`} className="relative aspect-square mb-6 bg-gray-50/30 rounded-3xl overflow-hidden flex items-center justify-center">
+                  {product.image_url ? (
+                     <Image src={product.image_url} alt={product.name} width={200} height={200} className="object-contain p-4 group-hover:scale-105 transition-transform duration-700 mix-blend-multiply" />
+                  ) : (
+                     <div className="text-4xl">🌿</div>
+                  )}
                </Link>
                <div className="space-y-2 mb-6">
-                  <h3 className="text-xs md:text-sm font-black text-gray-800 line-clamp-2 uppercase tracking-tight group-hover:text-[#2d5a27] transition-colors">{product.title}</h3>
+                  <h3 className="text-xs md:text-sm font-black text-gray-800 line-clamp-2 uppercase tracking-tight group-hover:text-[#2d5a27] transition-colors">{product.name}</h3>
                   <div className="flex items-center gap-3">
                      <span className="text-sm md:text-lg font-black text-gray-900">₹{product.price}</span>
-                     <span className="text-[10px] md:text-xs text-gray-400 line-through font-bold">₹{product.oldPrice}</span>
+                     {product.old_price > product.price && (
+                        <span className="text-[10px] md:text-xs text-gray-400 line-through font-bold">₹{product.old_price}</span>
+                     )}
                   </div>
                </div>
-               <button 
-                  onClick={() => addToCart(product)}
-                  className="w-full bg-[#2d5a27] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-[#2d5a27]/20 hover:bg-[#1f3f1b] transition-all active:scale-95 cursor-pointer mt-auto"
-               >
-                  Add to Cart
-               </button>
+               
+               <AddToCartButton product={{
+                   id: product.id,
+                   name: product.name,
+                   price: product.price,
+                   image_url: product.image_url || '',
+                   category: { name: categoryName }
+               }} />
+
             </div>
           ))}
         </div>

@@ -11,7 +11,9 @@ create table if not exists public.products (
   benefits text[],
   ingredients text[],
   usage_instructions text,
-  is_active boolean default true
+  is_active boolean default true,
+  purchase_link text,
+  old_price decimal(10, 2)
 );
 
 -- Enable RLS

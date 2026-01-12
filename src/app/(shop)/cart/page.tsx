@@ -109,6 +109,10 @@ export default function CartPage() {
                 <span className="text-lg">🛡️</span>
                 Secure Checkout with 128-bit Encryption
               </div>
+              <div className="flex items-center gap-3 text-[10px] font-bold text-white/40 uppercase tracking-widest leading-tight pt-2">
+                <span className="text-lg">🏥</span>
+                Bulk Ordering? <Link href="/b2b-enquiry" className="underline text-white hover:text-yellow-400">Request Quote</Link>
+              </div>
             </div>
           </div>
         </div>

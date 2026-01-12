@@ -1,11 +1,18 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product } from '@/data/products';
-
-interface CartItem extends Product {
-  quantity: number;
-}
+export interface Product {
+    id: string;
+    title: string;
+    price: number;
+    image: string;
+    category?: string;
+    description?: string;
+  }
+  
+  export interface CartItem extends Product {
+    quantity: number;
+  }
 
 interface CartContextType {
   cart: CartItem[];

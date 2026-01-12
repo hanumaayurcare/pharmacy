@@ -1,47 +1,49 @@
--- Seed Dosage Forms into shop.categories
-INSERT INTO shop.categories (name, slug, description)
+-- Seed Dosage Forms into public.categories
+INSERT INTO public.categories (name, slug, type, description)
 VALUES
-  ('Asava and Arishta', 'asava-arishta', 'Fermented liquid preparations'),
-  ('Churna', 'churna', 'Powdered herb mixtures'),
-  ('Kwath', 'kwath', 'Decoctions'),
-  ('Guggulu', 'guggulu', 'Resin-based formulations'),
-  ('Vati and Gutika', 'vati-gutika', 'Tablets and pills'),
-  ('Bhasma', 'bhasma', 'Calcined mineral preparations'),
-  ('Taila', 'taila', 'Medicated oils'),
-  ('Ghrita', 'ghrita', 'Medicated ghee preparations'),
-  ('Lepa', 'lepa', 'Pastes for external application'),
-  ('Avaleha', 'avaleha', 'Semi-solid preparations (like jams)')
+  ('Asava and Arishta', 'asava-arishta', 'dosage', 'Fermented liquid preparations'),
+  ('Churna', 'churna', 'dosage', 'Powdered herb mixtures'),
+  ('Kwath', 'kwath', 'dosage', 'Decoctions'),
+  ('Guggulu', 'guggulu', 'dosage', 'Resin-based formulations'),
+  ('Vati and Gutika', 'vati-gutika', 'dosage', 'Tablets and pills'),
+  ('Bhasma', 'bhasma', 'dosage', 'Calcined mineral preparations'),
+  ('Taila', 'taila', 'dosage', 'Medicated oils'),
+  ('Ghrita', 'ghrita', 'dosage', 'Medicated ghee preparations'),
+  ('Lepa', 'lepa', 'dosage', 'Pastes for external application'),
+  ('Avaleha', 'avaleha', 'dosage', 'Semi-solid preparations (like jams)')
 ON CONFLICT (slug) DO UPDATE 
-SET description = EXCLUDED.description;
+SET description = EXCLUDED.description,
+    type = EXCLUDED.type;
 
--- Seed Therapeutic Categories into shop.health_solutions
-INSERT INTO shop.health_solutions (name, slug)
+-- Seed Therapeutic Categories into public.categories (as type='therapeutic')
+INSERT INTO public.categories (name, slug, type)
 VALUES
-  ('Allergy', 'allergy'),
-  ('Autoimmune', 'autoimmune'),
-  ('Blood Disorders', 'blood-disorders'),
-  ('Bone, Muscle, Joint Health', 'bone-muscle-joint'),
-  ('Cold, Cough, Fever, Sinus', 'cold-cough-fever'),
-  ('Digestion, Constipation & Gut Health', 'digestion-gut'),
-  ('Eye Health', 'eye-health'),
-  ('Female Health', 'female-health'),
-  ('General', 'general'),
-  ('Gynae Health', 'gynae-health'),
-  ('Heart Care', 'heart-care'),
-  ('Immunity', 'immunity'),
-  ('Kidney Health', 'kidney-health'),
-  ('Kids Health', 'kids-health'),
-  ('Lifestyle disorders', 'lifestyle-disorders'),
-  ('Liver Health', 'liver-health'),
-  ('Male Health', 'male-health'),
-  ('Mental Health', 'mental-health'),
-  ('Old Age issues', 'old-age-issues'),
-  ('Oral Health', 'oral-health'),
-  ('Personal Care', 'personal-care'),
-  ('Proteins, Vitamins & Minerals', 'proteins-vitamins'),
-  ('Respiratory & Lung Health', 'respiratory-lung'),
-  ('Sexual Health', 'sexual-health'),
-  ('Skin Health', 'skin-health'),
-  ('Urinary Health', 'urinary-health'),
-  ('Weight Management', 'weight-management')
-ON CONFLICT (slug) DO NOTHING;
+  ('Allergy', 'allergy', 'therapeutic'),
+  ('Autoimmune', 'autoimmune', 'therapeutic'),
+  ('Blood Disorders', 'blood-disorders', 'therapeutic'),
+  ('Bone, Muscle, Joint Health', 'bone-muscle-joint', 'therapeutic'),
+  ('Cold, Cough, Fever, Sinus', 'cold-cough-fever', 'therapeutic'),
+  ('Digestion, Constipation & Gut Health', 'digestion-gut', 'therapeutic'),
+  ('Eye Health', 'eye-health', 'therapeutic'),
+  ('Female Health', 'female-health', 'therapeutic'),
+  ('General', 'general', 'therapeutic'),
+  ('Gynae Health', 'gynae-health', 'therapeutic'),
+  ('Heart Care', 'heart-care', 'therapeutic'),
+  ('Immunity', 'immunity', 'therapeutic'),
+  ('Kidney Health', 'kidney-health', 'therapeutic'),
+  ('Kids Health', 'kids-health', 'therapeutic'),
+  ('Lifestyle disorders', 'lifestyle-disorders', 'therapeutic'),
+  ('Liver Health', 'liver-health', 'therapeutic'),
+  ('Male Health', 'male-health', 'therapeutic'),
+  ('Mental Health', 'mental-health', 'therapeutic'),
+  ('Old Age issues', 'old-age-issues', 'therapeutic'),
+  ('Oral Health', 'oral-health', 'therapeutic'),
+  ('Personal Care', 'personal-care', 'therapeutic'),
+  ('Proteins, Vitamins & Minerals', 'proteins-vitamins', 'therapeutic'),
+  ('Respiratory & Lung Health', 'respiratory-lung', 'therapeutic'),
+  ('Sexual Health', 'sexual-health', 'therapeutic'),
+  ('Skin Health', 'skin-health', 'therapeutic'),
+  ('Urinary Health', 'urinary-health', 'therapeutic'),
+  ('Weight Management', 'weight-management', 'therapeutic')
+ON CONFLICT (slug) DO UPDATE
+SET type = EXCLUDED.type;

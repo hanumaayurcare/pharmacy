@@ -32,7 +32,7 @@ export function HeroSection() {
             href="/categories"
             className="px-8 py-4 bg-[#d4a373] text-[#2d5a27] rounded-full font-bold text-sm uppercase tracking-widest hover:bg-[#c29264] transition-all transform hover:-translate-y-1"
           >
-            Shop Remedies
+            Shop Now
           </Link>
           <Link
             href="/doctor-consult"

@@ -40,11 +40,21 @@ CREATE TABLE IF NOT EXISTS shop.products (
     slug TEXT UNIQUE NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
-    discounted_price DECIMAL(10, 2),
+    old_price DECIMAL(10, 2), -- Requested column
+    discounted_price DECIMAL(10, 2), -- Keeping for backward compat if needed, or alias
     stock_quantity INTEGER DEFAULT 0,
     image_url TEXT,
     category_id UUID REFERENCES shop.categories(id),
     health_solution_id UUID REFERENCES shop.health_solutions(id),
+    
+    -- New columns requested
+    dosage_form TEXT,
+    therapeutic_categories TEXT[],
+    ingredients TEXT[],
+    usage_instructions TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    purchase_link TEXT,
+
     is_new BOOLEAN DEFAULT FALSE,
     is_bestseller BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
